@@ -1,5 +1,5 @@
-import React from 'react';
-import { Box, Paper, Typography } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, Paper, Typography, CircularProgress, Alert, IconButton } from '@mui/material';
 import {
   BarChart,
   Bar,
@@ -13,15 +13,82 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
-const projectData = [
-  { name: 'Project A', progress: 75 },
-  { name: 'Project B', progress: 45 },
-  { name: 'Project C', progress: 90 },
-  { name: 'Project D', progress: 30 },
-];
+interface DashboardData {
+  totalProjects: number;
+  activeProjects: number;
+  completedProjects: number;
+  overdueTasks: number;
+  projectProgress: Array<{
+    name: string;
+    progress: number;
+  }>;
+}
 
 const Dashboard: React.FC = () => {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [startDate, setStartDate] = useState<Date | null>(new Date(new Date().setMonth(new Date().getMonth() - 1)));
+  const [endDate, setEndDate] = useState<Date | null>(new Date());
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      // TODO: Replace with actual API call
+      // const response = await api.getDashboardData(startDate, endDate);
+      // setData(response.data);
+      
+      // Temporary mock data
+      setData({
+        totalProjects: 12,
+        activeProjects: 8,
+        completedProjects: 4,
+        overdueTasks: 5,
+        projectProgress: [
+          { name: 'Project A', progress: 75 },
+          { name: 'Project B', progress: 45 },
+          { name: 'Project C', progress: 90 },
+          { name: 'Project D', progress: 30 },
+        ],
+      });
+    } catch (err) {
+      setError('Failed to fetch dashboard data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [startDate, endDate]);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+        <Button onClick={fetchDashboardData} startIcon={<RefreshIcon />}>
+          Retry
+        </Button>
+      </Box>
+    );
+  }
+
   return (
     <Box 
       sx={{ 
@@ -31,18 +98,38 @@ const Dashboard: React.FC = () => {
         minHeight: '100vh',
       }}
     >
-      <Typography 
-        variant="h4" 
-        gutterBottom 
-        sx={{ 
-          mb: 3, 
-          animation: 'slideDown 0.5s ease-in-out',
-          animationDelay: '0.1s',
-          animationFillMode: 'both',
-        }}
-      >
-        Dashboard Overview
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography 
+          variant="h4" 
+          gutterBottom 
+          sx={{ 
+            animation: 'slideDown 0.5s ease-in-out',
+            animationDelay: '0.1s',
+            animationFillMode: 'both',
+          }}
+        >
+          Dashboard Overview
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <DatePicker
+              label="Start Date"
+              value={startDate}
+              onChange={(newValue) => setStartDate(newValue)}
+              sx={{ backgroundColor: '#242424', borderRadius: 1 }}
+            />
+            <DatePicker
+              label="End Date"
+              value={endDate}
+              onChange={(newValue) => setEndDate(newValue)}
+              sx={{ backgroundColor: '#242424', borderRadius: 1 }}
+            />
+          </LocalizationProvider>
+          <IconButton onClick={fetchDashboardData} sx={{ color: 'white' }}>
+            <RefreshIcon />
+          </IconButton>
+        </Box>
+      </Box>
 
       <Box sx={{ 
         display: 'grid',
@@ -202,7 +289,7 @@ const Dashboard: React.FC = () => {
           }}
         >
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={projectData}>
+            <BarChart data={data?.projectProgress || []}>
               <CartesianGrid strokeDasharray="3 3" stroke="#333" />
               <XAxis dataKey="name" stroke="#fff" />
               <YAxis stroke="#fff" />
